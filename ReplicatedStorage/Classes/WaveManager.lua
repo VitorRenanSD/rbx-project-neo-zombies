@@ -1,61 +1,67 @@
--- ModuleScript: ReplicatedStorage/Classes/WaveManager
-
 local WaveManager = {}
 WaveManager.__index = WaveManager
 
 -- Construtor
-function WaveManager.new(map, spawnLocation, config, zombieModels)
-    local self = setmetatable({}, WaveManager)
-    self.map = map  -- Config do mapa
-    self.spawnLocation = spawnLocation  -- Local de spawn dos zumbis
-    self.config = config  -- Configurações do jogo (como número de ondas)
-    self.zombieModels = zombieModels  -- Modelos dos zumbi
-    self.canStartNewWave = true  -- Controla quando pode iniciar nova wave
-    return self
+function WaveManager.new(mapa, spawnLocation, config, zombieModels)
+	local self = setmetatable({}, WaveManager)
+
+	self.mapa = mapa  -- Config do mapa
+	self.spawnLocation = spawnLocation  -- Local de spawn dos zumbis
+	self.config = config  -- Configurações do jogo (número de waves, etc)
+	self.zombieModels = zombieModels  -- Modelos dos zumbis
+	self.canStartNewWave = true  -- Controla quando pode iniciar nova wave
+
+
+	self.ZombieClass = require(game.ReplicatedStorage.Classes.Zombie)
+	-- Chama a classe Zombie
+	self.whitelistedNames = {"Classic Zombie", "Crawler Zombie", "Tank Zombie"}
+	-- Lista branca para os zumbis, para eles não se baterem no chasePlayer()
+
+	return self
 end
 
--- Função para spawnar zombies
+
+-- Metodo para spawnar zombies
 function WaveManager:createZombies(waveAtual, numZombies)
-    
-    -- Escolhendo os inimigos de acordo com o nível de onda
-    local zombiesPerWave = {}
-    
-    for _, Zombie in pairs(self.zombieModels) do
-        
-        -- Spawna quem tem configurado onda mínima menor ou igual à atual
-        if Zombie.Config.waveSpawn.Value <= waveAtual then
-            table.insert(zombiesPerWave, Zombie)
-        end
-        
-    end
-    
-    -- Listar os pontos de spawn para usar abaixo
-    local spawnPoints = self.spawnLocation:GetChildren()
-    
-    -- Spawnando os inimigos
-    for i = 1, numZombies do
-        
-        local chosenZombie = zombiesPerWave[math.random(1, #zombiesPerWave)]
-        
-        -- Zombie será spawnado dentro de ZombiesAlive (pasta)
-        local newZombie = chosenZombie:Clone()
-        newZombie.Parent = self.map.ZombiesAlive
-        
-        if newZombie.PrimaryPart then
-            
-            -- Escolher um ponto de spawn random
-            local randomSpawnPoint = spawnPoints[math.random(1, #spawnPoints)]
-            -- Spawna nesse ponto escolhido
-			newZombie:SetPrimaryPartCFrame(CFrame.new(randomSpawnPoint.Position) + Vector3.new(0, 1, 0))
+	
+	local zombiesPerWave = {}
+	
+	-- Escolhendo os inimigos de acordo com o nível de onda
+	for _, Zombie in pairs(self.zombieModels) do
+		
+		-- Spawna quem tem configurado onda mínima menor ou igual à atual
+		if Zombie.Config.waveSpawn.Value <= waveAtual then
+			table.insert(zombiesPerWave, Zombie)
+		end
+		
+	end
+
+	-- Lista os pontos de spawn, é usado abaixo
+	local spawnPoints = self.spawnLocation:GetChildren()
+
+	-- Spawnando os zumbis
+	for i = 1, numZombies do
+		local chosenZombie = zombiesPerWave[math.random(1, #zombiesPerWave)]
+
+		-- Zombie será spawnado dentro de Workspace/Mapa/ZombiesAlive
+		local newZombie = chosenZombie:Clone()
+		newZombie.Parent = self.mapa.ZombiesAlive
+
+		if newZombie.PrimaryPart then
 			
-			-- Puxando os valores de atk, hp e movespeed do Config dentro de model
+			-- Escolhe um ponto de spawn aleatorio
+			local randomSpawnPoint = spawnPoints[math.random(1, #spawnPoints)]
+			-- Spawna nesse ponto escolhido
+			newZombie:SetPrimaryPartCFrame(CFrame.new(randomSpawnPoint.Position) + Vector3.new(0, 1, 0))
+
+			-- Puxa os valores de hp e movespeed do Config dentro do model de Zumbi
 			local zombieConfig = newZombie:WaitForChild("Config")
 			local zombieHP = zombieConfig.health.Value
 			local zombieMS = zombieConfig.moveSpeed.Value
 
-			-- Formula pra multiplicador de atributos, difculdade no jogo
-			local maxHealth = zombieHP + (8 * self.config.currentWave.Value)
-			local moveSpeed = zombieMS + (0.4 * self.config.currentWave.Value)
+			-- Formula pro multiplicador de HP e MS por wave
+			local maxHealth = zombieHP + (10 * self.config.currentWave.Value)
+			local moveSpeed = zombieMS + (0.6 * self.config.currentWave.Value)
 
 			-- Adiciona os valores de HP e MS
 			local humanoid = newZombie:FindFirstChildOfClass("Humanoid")
@@ -65,55 +71,56 @@ function WaveManager:createZombies(waveAtual, numZombies)
 				humanoid.WalkSpeed = moveSpeed
 			end
 
+			-- Inicia o chasePlayer, logo apos spawnar
+			local zombieInstance = self.ZombieClass.new(newZombie, self.mapa, self.mapa.ZombiesAlive, self.whitelistedNames)  -- Ajuste aqui
+			coroutine.wrap(function()
+				zombieInstance:ChasePlayer()
+			end)()
+
 		else
-            warn("Zombie está sem PrimaryPart")
-        end
-        
-        wait(0.3)
-    end
+			warn("Zombie está sem PrimaryPart")
+		end
+	end
 end
 
--- Função para criar uma nova wave
+
+-- Metodo pra criar uma nova wave
 function WaveManager:createNewWave()
-    self.canStartNewWave = false
-    wait(5)
-    
-    self.config.currentWave.Value = self.config.currentWave.Value + 1
-    print("Wave atual: " .. self.config.currentWave.Value)
-    
-    -- Fórmula para quantidade de zumbis * waveAtual
-    local currentWave = self.config.currentWave.Value
-    local quantZombies = math.random(4, 6) * currentWave
-    
-    self:createZombies(currentWave, quantZombies)
-    
-    wait(10)
-    self.canStartNewWave = true
+	self.canStartNewWave = false
+	wait(2)
+
+	self.config.currentWave.Value = self.config.currentWave.Value + 1
+	print("Wave atual: " .. self.config.currentWave.Value)
+
+	-- Fórmula para quantidade de zumbis * waveAtual
+	local currentWave = self.config.currentWave.Value
+	local quantZombies = math.random(4, 6) * currentWave
+
+	self:createZombies(currentWave, quantZombies)
+
+	wait(5)
+	self.canStartNewWave = true
 end
+
 
 -- Loop para criar waves
 function WaveManager:startWaveLoop()
-    local RunService = game:GetService("RunService")
-    RunService.Stepped:Connect(function()
-        
-        local remainingZombies = #(self.map:WaitForChild("ZombiesAlive"):GetChildren())
-        
-        -- Já chegou ao número máximo de ondas (Mapa/Config/MaxWaves)
-        if self.config.currentWave.Value >= self.config.maxWaves.Value and remainingZombies == 0 then
-            print("Fim do jogo. ganhou!")
-        
-        -- Ainda não chegou ao número máximo de ondas
-        else
-            
-            -- Existe inimigos no mapa?
-            if (remainingZombies == 0) and self.canStartNewWave == true then
-                self:createNewWave()
+	local RunService = game:GetService("RunService")
+	RunService.Stepped:Connect(function()
+		local remainingZombies = #(self.mapa:WaitForChild("ZombiesAlive"):GetChildren())
+
+		-- Ja chegou ao numero maximo de waves
+		if self.config.currentWave.Value >= self.config.maxWaves.Value and remainingZombies == 0 then
+			print("Fim do jogo. ganhou!")
+
+		-- Ainda nao chegou ao numero maximo de waves
+		else
+
+			if (remainingZombies == 0) and self.canStartNewWave == true then
+				self:createNewWave()
 			end
-			
 		end
-		
 	end)
-	
 end
 
 return WaveManager

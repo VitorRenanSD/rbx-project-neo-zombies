@@ -37,10 +37,9 @@ function Zombie:attackPlayer(player)
 			
 			-- Calcula o dano de acordo com a wave atual 
 			local zombieATK = self.model.Config.attackDamage.Value
-			local attackDamage = zombieATK + (1.6 * self.mapa.Config.currentWave.Value)
+			local attackDamage = zombieATK + (1.6 * (self.mapa.Config.currentWave.Value - 1))
 			
 			-- Aplica o dano
-			local attackDamage = self.model.Config.attackDamage.Value
 			humanoid:TakeDamage(attackDamage)
 			print(player.Name .. " HITADO EM " .. attackDamage .. " DE DANO")
 
@@ -57,7 +56,7 @@ end
 -- Metodo para perseguir o jogador, usa attackPlayer()
 function Zombie:ChasePlayer()
 	local distanciamax = 1000 
-	local distanciamin = 3 -- Distancia mínima antes de atacar
+	local distanciamin = 1 -- Distancia mínima antes de atacar
 
 	while true do
 		wait(0.1)
@@ -84,15 +83,15 @@ function Zombie:ChasePlayer()
 		-- Se encontrar um jogador dentro do range, move o zumbi e verifica se deve atacar
 		if closestPlayer then
 			local humanoid = self.model:FindFirstChild("Humanoid")
-			
+
 			if humanoid then
 				humanoid:MoveTo(closestPlayer.Character.HumanoidRootPart.Position - Vector3.new(0, distanciamin, 0))
 
 				-- Se o zumbi estiver suficientemente perto e nao estiver atacando
-				if closestDistance <= distanciamin and not self.attacking then
+				if closestDistance <= distanciamin + 1 and not self.attacking then
 					self:attackPlayer(closestPlayer)
 				end
-				
+
 			else
 				warn("Zombie model is missing Humanoid")
 			end

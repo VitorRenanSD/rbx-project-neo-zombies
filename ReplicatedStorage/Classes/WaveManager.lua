@@ -94,7 +94,7 @@ function WaveManager:createNewWave()
 
 	-- Fórmula para quantidade de zumbis * waveAtual
 	local currentWave = self.config.currentWave.Value
-	local quantZombies = math.random(4, 6) * currentWave
+	local quantZombies = math.random(4, 10) * (currentWave / 2)
 
 	self:createZombies(currentWave, quantZombies)
 

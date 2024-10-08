@@ -1,27 +1,26 @@
 local WaveManager = {}
 WaveManager.__index = WaveManager
 
--- Construtor
-function WaveManager.new(mapa, spawnLocation, config, zombieModels)
+-- Constructor
+function WaveManager.new(map, spawnLocation, config, zombieModels)
 	local self = setmetatable({}, WaveManager)
 
-	self.mapa = mapa  -- Config do mapa
-	self.spawnLocation = spawnLocation  -- Local de spawn dos zumbis
-	self.config = config  -- Configurações do jogo (número de waves, etc)
-	self.zombieModels = zombieModels  -- Modelos dos zumbis
-	self.canStartNewWave = true  -- Controla quando pode iniciar nova wave
+	self.map = map  -- Folder called "Map" inside Workspace
+	self.spawnLocation = spawnLocation  -- Folder used to spawn zombies into the game
+	self.config = config  -- Game configs folder (maxWaves, currentWave...)
+	self.zombieModels = zombieModels  -- Zombie models folder
+	self.canStartNewWave = true  -- Boolean to control when to start next wave
 
-
+	-- Require Zombie class
 	self.ZombieClass = require(game.ReplicatedStorage.Classes.Zombie)
-	-- Chama a classe Zombie
+	-- Whitelist with the zombies model names, used to avoid damaging each other
 	self.whitelistedNames = {"Classic Zombie", "Crawler Zombie", "Tank Zombie"}
-	-- Lista branca para os zumbis, para eles não se baterem no chasePlayer()
 
 	return self
 end
 
 
--- Metodo para spawnar zombies
+-- Method to spawn zombies
 function WaveManager:createZombies(waveAtual, numZombies)
 	
 	local zombiesPerWave = {}
@@ -36,14 +35,14 @@ function WaveManager:createZombies(waveAtual, numZombies)
 		
 	end
 
-	-- Lista os pontos de spawn, é usado abaixo
+	-- List the spawn points inside the folder (Parts)
 	local spawnPoints = self.spawnLocation:GetChildren()
 
-	-- Spawnando os zumbis
+	-- Spawning the zombies
 	for i = 1, numZombies do
 		local chosenZombie = zombiesPerWave[math.random(1, #zombiesPerWave)]
 
-		-- Zombie será spawnado dentro de Workspace/Mapa/ZombiesAlive
+		-- Zombie will be spawned into Workspace/Map/ZombiesAlive
 		local newZombie = chosenZombie:Clone()
 		newZombie.Parent = self.mapa.ZombiesAlive
 
@@ -103,7 +102,7 @@ function WaveManager:createNewWave()
 end
 
 
--- Loop para criar waves
+-- Loop to create new waves
 function WaveManager:startWaveLoop()
 	local RunService = game:GetService("RunService")
 	RunService.Stepped:Connect(function()

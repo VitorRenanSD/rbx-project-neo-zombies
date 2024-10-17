@@ -97,7 +97,7 @@ function WaveManager:createNewWave()
 
 	self:createZombies(currentWave, quantZombies)
 
-	wait(5)
+	wait(2)
 	self.canStartNewWave = true
 end
 

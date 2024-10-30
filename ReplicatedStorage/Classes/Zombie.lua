@@ -5,109 +5,101 @@ Zombie.__index = Zombie
 function Zombie.new(model, mapa, zombiesFolder, whitelistedNames)
 	local self = setmetatable({}, Zombie)
 
-	if not model:FindFirstChild("Humanoid") or not model:FindFirstChild("HumanoidRootPart") then
-		warn("Modelo de zumbi n tem Humanoid ou HumanoidRootPart")
-	end
-
 	self.model = model -- Model do zumbi
 	self.mapa = mapa  -- Puxa a pasta mapa, onde tem as configs
 	self.lastHitTime = 0 
-	self.cooldown = 2 -- Tempo de cooldown entre ataques
-	self.zombiesFolder = zombiesFolder -- Pasta onde fica os zumbis
-	self.zombieHitbox = model:FindFirstChild("Hitbox") -- Objeto Hitbox de cada zumbi
-	self.whitelistedNames = whitelistedNames -- Nomes que não serao atacados pelos zumbis
+	self.cooldown = 2
+	self.zombiesFolder = zombiesFolder -- Pasta onde ficam os zumbis
+	self.whitelistedNames = whitelistedNames -- Nomes que não serão atacados pelos zumbis
 	self.attacking = false -- Indica se o zumbi está atacando
+
+	-- Chama as classes necessárias e suas instâncias
+	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
+	self.AnimatorClass = require(game.ReplicatedStorage.Classes.Animator)
+
+	self.animator = self.AnimatorClass.new(model)
+	self.sound = self.SoundClass.new()
 
 	return self
 end
 
-
--- Metodo para atacar o jogador
+-- Método para atacar o jogador
 function Zombie:attackPlayer(player)
 	local currentTime = tick()
 
-	-- Verifica se o cooldown de ataque ja passou
+	-- Verifica se o cooldown de ataque já passou
 	if currentTime - self.lastHitTime >= self.cooldown then
 		self.lastHitTime = currentTime
+		self.attacking = true
 
 		-- Acha o Humanoid do jogador
 		local humanoid = player.Character:FindFirstChild("Humanoid")
 
 		if humanoid then
-			
 			-- Calcula o dano de acordo com a wave atual 
 			local zombieATK = self.model.Config.attackDamage.Value
-			local attackDamage = zombieATK + (1.6 * (self.mapa.Config.currentWave.Value - 1))
-			
-			-- Aplica o dano
+			local attackDamage = zombieATK + (0.6 * (self.mapa.Config.currentWave.Value))
+
+			-- Aplica o dano, animacao e som
+			self.animator:playAnimation("attackAnim")
+			self:playAttackSound()
 			humanoid:TakeDamage(attackDamage)
-			print(player.Name .. " HITADO EM " .. attackDamage .. " DE DANO")
 
-		else
-			warn("Humanoid não encontrado no jogador " .. player.Name)
+			print("HITADO EM " .. attackDamage .. " pelo " .. self.model.Name)
+
 		end
-
+		
+		self.animator:stopAnimation("attackAnim")
+		self.attacking = false
+		
 	else
 		print("Em cooldown")
 	end
 end
 
-
--- Metodo para perseguir o jogador, usa attackPlayer()
+-- Método para perseguir o jogador, usa attackPlayer()
 function Zombie:ChasePlayer()
-	local distanciamax = 1000 
-	local distanciamin = 1 -- Distancia mínima antes de atacar
+	local humanoid = self.model:FindFirstChild("Humanoid")
+	local distanciamax = 1000
+	local distanciamin = 1 -- Distância mínima antes de atacar
 
+	self.animator:playAnimation("chaseAnim")
+	
 	while true do
 		wait(0.1)
-		local closestPlayer = nil
-		local closestDistance = distanciamax
 
-		if not self.model or not self.model:FindFirstChild("HumanoidRootPart") then
-			warn("Zombie model is missing HumanoidRootPart")
-			break
-		end
-
-		-- Procura o jogador mais proximo
+		-- Procura o jogador mais próximo
+		local closestPlayer, closestDistance = nil, distanciamax
 		for _, player in pairs(game.Players:GetPlayers()) do
-			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				local distance = (player.Character.HumanoidRootPart.Position - self.model.HumanoidRootPart.Position).Magnitude
-
+			local character = player.Character
+			local playerRoot = character and character:FindFirstChild("HumanoidRootPart")
+			if playerRoot then
+				local distance = (playerRoot.Position - self.model.HumanoidRootPart.Position).Magnitude
 				if distance < closestDistance then
-					closestPlayer = player
-					closestDistance = distance
+					closestPlayer, closestDistance = player, distance
 				end
 			end
 		end
 
 		-- Se encontrar um jogador dentro do range, move o zumbi e verifica se deve atacar
-		if closestPlayer then
-			local humanoid = self.model:FindFirstChild("Humanoid")
+		if closestPlayer and closestDistance <= distanciamax then
+			humanoid:MoveTo(closestPlayer.Character.HumanoidRootPart.Position - Vector3.new(0, distanciamin, 0))
 
-			if humanoid then
-				humanoid:MoveTo(closestPlayer.Character.HumanoidRootPart.Position - Vector3.new(0, distanciamin, 0))
-
-				-- Se o zumbi estiver suficientemente perto e nao estiver atacando
-				if closestDistance <= distanciamin + 1 and not self.attacking then
-					self:attackPlayer(closestPlayer)
-				end
-
-			else
-				warn("Zombie model is missing Humanoid")
+			if closestDistance <= distanciamin + 1.5 and not self.attacking then
+				self:attackPlayer(closestPlayer)
 			end
 		end
-	end
+	end	
 end
 
+-- Método para som de ataque do zumbi
+function Zombie:playAttackSound()
+	-- Randomiza o som de ataque da lista
+	local soundFolder = game.ReplicatedStorage.Sounds.ZombieAttack
+	local soundList = soundFolder:GetChildren()
 
--- Metodo para dar Destroy no zumbi caso Humanoid.health = 0
---function Zombie:destroyZombie()
--- PARA FAZER
--- PARA FAZER
--- PARA FAZER
--- PARA FAZER
--- PARA FAZER
--- PARA FAZER
--- PARA FAZER
+	local randomSound = soundList[math.random(1, #soundList)]
+	self.sound:playSound(randomSound, 1, false)
+end
 
 return Zombie

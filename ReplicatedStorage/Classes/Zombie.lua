@@ -6,6 +6,7 @@ function Zombie.new(model, mapa, zombiesFolder, whitelistedNames)
 	local self = setmetatable({}, Zombie)
 
 	self.model = model -- Model do zumbi
+	
 	self.mapa = mapa  -- Puxa a pasta mapa, onde tem as configs
 	self.lastHitTime = 0 
 	self.cooldown = 2
@@ -15,9 +16,9 @@ function Zombie.new(model, mapa, zombiesFolder, whitelistedNames)
 
 	-- Chama as classes necessárias e suas instâncias
 	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
-	self.AnimatorClass = require(game.ReplicatedStorage.Classes.Animator)
+	self.ZombieAnimatorClass = require(game.ReplicatedStorage.Classes.ZombieAnimator)
 
-	self.animator = self.AnimatorClass.new(model)
+	self.zombieAnimator = self.ZombieAnimatorClass.new(model)
 	self.sound = self.SoundClass.new()
 
 	return self
@@ -41,7 +42,7 @@ function Zombie:attackPlayer(player)
 			local attackDamage = zombieATK + (0.6 * (self.mapa.Config.currentWave.Value))
 
 			-- Aplica o dano, animacao e som
-			self.animator:playAnimation("attackAnim")
+			self.zombieAnimator:playAnimation("attackAnim")
 			self:playAttackSound()
 			humanoid:TakeDamage(attackDamage)
 
@@ -49,7 +50,7 @@ function Zombie:attackPlayer(player)
 
 		end
 		
-		self.animator:stopAnimation("attackAnim")
+		self.zombieAnimator:stopAnimation("attackAnim")
 		self.attacking = false
 		
 	else
@@ -62,19 +63,31 @@ function Zombie:ChasePlayer()
 	local humanoid = self.model:FindFirstChild("Humanoid")
 	local distanciamax = 1000
 	local distanciamin = 1 -- Distância mínima antes de atacar
+	local isAlive = self.model.Config.isAlive.Value
 
-	self.animator:playAnimation("chaseAnim")
+	self.zombieAnimator:playAnimation("chaseAnim")
 	
 	while true do
 		wait(0.1)
 
+		
 		-- Procura o jogador mais próximo
 		local closestPlayer, closestDistance = nil, distanciamax
 		for _, player in pairs(game.Players:GetPlayers()) do
 			local character = player.Character
 			local playerRoot = character and character:FindFirstChild("HumanoidRootPart")
+
+		
+			-- Verificacao pra parar caso nao tiver vivo
+			if not isAlive or not self.model:FindFirstChild("HumanoidRootPart") then
+				break
+			end
+			
+			
+			local zombieRootPart = self.model.HumanoidRootPart
+			
 			if playerRoot then
-				local distance = (playerRoot.Position - self.model.HumanoidRootPart.Position).Magnitude
+				local distance = (playerRoot.Position - zombieRootPart.Position).Magnitude
 				if distance < closestDistance then
 					closestPlayer, closestDistance = player, distance
 				end
@@ -101,5 +114,23 @@ function Zombie:playAttackSound()
 	local randomSound = soundList[math.random(1, #soundList)]
 	self.sound:playSound(randomSound, 1, false)
 end
+
+
+function Zombie:verifyDestroy()
+	local humanoid = self.model:FindFirstChild("Humanoid")
+	local isAlive = self.model.Config.isAlive
+	
+	humanoid.Died:Connect(function()
+
+		isAlive.Value = false
+
+		print("Excluindo zumbi...")
+		wait(1)
+		self.model:Destroy()
+
+	end)
+	
+end
+
 
 return Zombie

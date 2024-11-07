@@ -27,6 +27,7 @@ function WaveManager.new(map, config, zombieModels, player)
 	return self
 end
 
+
 -- Método para spawnar zumbis
 function WaveManager:createZombies(waveAtual, numZombies)
 	local zombiesPerWave = {}
@@ -59,7 +60,7 @@ function WaveManager:createZombies(waveAtual, numZombies)
 
 			-- Fórmula para multiplicador de HP e MS por wave
 			local maxHealth = zombieHP + (10 * self.config.currentWave.Value)
-			local moveSpeed = zombieMS + (1.2 * self.config.currentWave.Value)
+			local moveSpeed = zombieMS + (1.3 * self.config.currentWave.Value)
 
 			-- Adiciona os valores de HP e MS
 			local humanoid = newZombie:FindFirstChildOfClass("Humanoid")
@@ -69,11 +70,14 @@ function WaveManager:createZombies(waveAtual, numZombies)
 				humanoid.WalkSpeed = moveSpeed
 			end
 
+
 			-- Inicia o chasePlayer, logo após spawnar
 			local zombieInstance = self.ZombieClass.new(newZombie, self.map, self.map.ZombiesAlive, self.whitelistedNames)
+			
 			coroutine.wrap(function()
 				zombieInstance:ChasePlayer()
 			end)()
+
 
 			wait(0.3)
 		else
@@ -82,7 +86,8 @@ function WaveManager:createZombies(waveAtual, numZombies)
 	end
 end
 
--- Método para criar uma nova wave
+
+-- Metodo para criar nova wave
 function WaveManager:createNewWave()
 	self.canStartNewWave = false
 	wait(1)
@@ -96,13 +101,14 @@ function WaveManager:createNewWave()
 
 	-- Determina a quantidade de zumbis da próxima wave
 	local currentWave = self.config.currentWave.Value
-	local quantZombies = math.random(4, 6) * (currentWave * 0.75)
+	local quantZombies = math.random(3, 5) * (currentWave / 2)
 
 	self:createZombies(currentWave, quantZombies)
 
 	wait(5)
 	self.canStartNewWave = true
 end
+
 
 -- Loop para criar waves e atualizar HUD de zumbis vivos
 function WaveManager:startWaveLoop()
@@ -111,32 +117,27 @@ function WaveManager:startWaveLoop()
 	local hasWon = false
 
 	RunService.Stepped:Connect(function()
-		local remainingZombies = #(self.map:WaitForChild("ZombiesAlive"):GetChildren())
-
 		-- Atualiza o número de zumbis vivos no HUD
+		local remainingZombies = #(self.map:WaitForChild("ZombiesAlive"):GetChildren())
 		local updateZombieHUD = ReplicatedStorage:WaitForChild("updateZombieHUD")
 		updateZombieHUD:FireAllClients(remainingZombies)
+
 
 		-- Verifica se as condições de vitória foram atingidas
 		if self.config.currentWave.Value >= self.config.maxWaves.Value and remainingZombies == 0 and not hasWon then
 			hasWon = true
-			-- Mensagem de kick e som ao vencer
 			local minutes = self.player.leaderstats.Minutes.Value
-			
 			sound:playSound(SFX.winSound, 1.0, false)
-			
 			self.player:Kick("You won, but at what cost? You lost like ".. minutes .. " minutes here. GO TOUCH GRASS!!!")
-
-			-- Se ainda não chegou ao número máximo de waves
 		else
+			-- Inicia a próxima onda se não tiver zumbis vivos e se for permitido
 			if (remainingZombies == 0) and self.canStartNewWave == true and not hasWon then
-				
 				sound:playSound(SFX.newWave, 0.4, false)
 				self:createNewWave()
-				
 			end
 		end
 	end)
 end
+
 
 return WaveManager

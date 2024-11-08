@@ -15,6 +15,8 @@ function Weapon.new(tool) -- construtor da classe
 	self.fireEvent = game.ReplicatedStorage:WaitForChild("fireEvent") 
 	
 	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
+	self.WeaponAnimatorClass = require(game.ReplicatedStorage.Classes.WeaponAnimator)
+	self.weaponAnimator = self.WeaponAnimatorClass.new(tool)
 	
 	self:connectEvents()
 	
@@ -88,7 +90,9 @@ function Weapon:fire(player, posicaoMouse)
 	local sound = self.SoundClass.new()
 	local SFX = game.ReplicatedStorage.Sounds.SFX
 	
+	self.weaponAnimator:playAnimation("fireAnim")
 	sound:playSound(SFX.fire, 0.5, false)
+	
 	
 	local RCparams = RaycastParams.new()
 	RCparams.FilterType = Enum.RaycastFilterType.Blacklist

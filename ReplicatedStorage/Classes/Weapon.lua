@@ -15,8 +15,9 @@ function Weapon.new(tool) -- construtor da classe
 	self.fireEvent = game.ReplicatedStorage:WaitForChild("fireEvent") 
 	
 	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
+	self.sound = self.SoundClass.new()
 	self.WeaponAnimatorClass = require(game.ReplicatedStorage.Classes.WeaponAnimator)
-	self.weaponAnimator = self.WeaponAnimatorClass.new(tool)
+	self.weaponAnimator = self.WeaponAnimatorClass.new(tool, tool)
 	
 	self:connectEvents()
 	
@@ -40,6 +41,7 @@ function Weapon:initializeWeapon()
 	mouse.Button1Down:Connect(function()
 		if self.tool:IsDescendantOf(player.Character) then
 			self:startAutoFire(player)
+			self.weaponAnimator:playAnimation("fireAnim")
 		end
 	end)
 	mouse.Button1Up:Connect(function()
@@ -50,23 +52,27 @@ end
 function Weapon:autoFire(player)
 	while self.holdMouse and self.tool:IsDescendantOf(player.Character) do
 		if self.canFire then
+			
 			self.canFire = false
+
 			local mouse = player:GetMouse()
 			local posicaoMouse = mouse.Hit.Position
+			
 			self:fire(player, posicaoMouse) -- Usa o método fire da classe Weapon
 	
 			-- Parte visual do impacto
 			local Part = Instance.new('Part')
 			Part.Parent = workspace
 			Part.Position = posicaoMouse
-			Part.Color = Color3.fromRGB(255, 0, 0)
-			Part.Size = Vector3.new(0.25, 0.25, 0.25)
+			Part.Material = Enum.Material.Neon
+			Part.Color = Color3.fromRGB(255, 255, 0)
+			Part.Size = Vector3.new(0.2, 0.2, 0.2)
 			Part.Anchored = true
 			Part.CanCollide = false
 			Part.Transparency = 0.5
 
 			wait(self.fireRate)
-			Part:Destroy(1)
+			Part:Destroy(0.75)
 
 			self.canFire = true
 		end
@@ -78,22 +84,21 @@ end
 function Weapon:startAutoFire(player)
 	self.holdMouse = true
 	self:autoFire(player) -- Inicia o disparo automático
+
 end
 
 -- Função para parar disparo contínuo
 function Weapon:stopAutoFire()
 	self.holdMouse = false
+	
 end
 
 -- Método para disparar
 function Weapon:fire(player, posicaoMouse)
-	local sound = self.SoundClass.new()
+
 	local SFX = game.ReplicatedStorage.Sounds.SFX
-	
-	self.weaponAnimator:playAnimation("fireAnim")
-	sound:playSound(SFX.fire, 0.5, false)
-	
-	
+	self.sound:playSound(SFX.fire, 0.5, false)
+
 	local RCparams = RaycastParams.new()
 	RCparams.FilterType = Enum.RaycastFilterType.Blacklist
 	RCparams.FilterDescendantsInstances = {self.tool.Parent}
@@ -108,7 +113,7 @@ function Weapon:fire(player, posicaoMouse)
 
 			-- Aplica dano
 			if hitInstance.Name == "Head" then
-				sound:playSound(SFX.headshot, 0.5, false)
+				self.sound:playSound(SFX.headshot, 0.5, false)
 				zombieHumanoid:TakeDamage(baseDamage * 2)
 				print(self.tool.Name .. " deu " .. baseDamage * 2 .. " de dano (Headshot)")
 			else

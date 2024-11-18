@@ -60,7 +60,7 @@ function WaveManager:createZombies(waveAtual, numZombies)
 
 			-- Fórmula para multiplicador de HP e MS por wave
 			local maxHealth = zombieHP + (10 * self.config.currentWave.Value)
-			local moveSpeed = zombieMS + (1.3 * self.config.currentWave.Value)
+			local moveSpeed = zombieMS + (1.2 * self.config.currentWave.Value)
 
 			-- Adiciona os valores de HP e MS
 			local humanoid = newZombie:FindFirstChildOfClass("Humanoid")
@@ -75,7 +75,7 @@ function WaveManager:createZombies(waveAtual, numZombies)
 			local zombieInstance = self.ZombieClass.new(newZombie, self.map, self.map.ZombiesAlive, self.whitelistedNames)
 			
 			coroutine.wrap(function()
-				zombieInstance:ChasePlayer()
+				zombieInstance:chasePlayer()
 			end)()
 
 
@@ -103,7 +103,7 @@ function WaveManager:createNewWave()
 	local currentWave = self.config.currentWave.Value
 	local quantZombies = math.random(3, 5) * (currentWave / 2)
 
-	self:createZombies(currentWave, quantZombies)
+	self:createZombies(currentWave, quantZombies)	
 
 	wait(5)
 	self.canStartNewWave = true
@@ -138,6 +138,5 @@ function WaveManager:startWaveLoop()
 		end
 	end)
 end
-
 
 return WaveManager

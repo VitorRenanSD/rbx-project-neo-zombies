@@ -6,7 +6,7 @@ function Zombie.new(model, mapa, zombiesFolder, whitelistedNames)
 	local self = setmetatable({}, Zombie)
 
 	self.model = model -- Model do zumbi
-	self.humanoid = model:WaitForChild("Humanoid")
+	self.humanoid = model.Humanoid
 	self.isAlive = self.model.Config.isAlive
 	
 	self.mapa = mapa  -- Puxa a pasta mapa, onde tem as configs
@@ -70,7 +70,7 @@ function Zombie:chasePlayer()
 	self.zombieAnimator:playAnimation("chaseAnim")
 	
 	while true do
-		wait(0.1)
+		task.wait(0.1)
 
 		-- Procura o jogador mais próximo
 		local closestPlayer, closestDistance = nil, distanciamax
@@ -121,12 +121,11 @@ function Zombie:verifyDestroy()
 	-- Quando morto, inicia:
 	self.humanoid.Died:Connect(function() 
 		
+		print("morri")
 		-- Altera a variável isAlive para FALSO
 		self.isAlive.Value = false
-
 		-- Aguarda 1 segundo e exclui o proprio
-		print("Excluindo zumbi...")
-		wait(1)
+		task.wait(0.8)
 		self.model:Destroy()
 
 	end)

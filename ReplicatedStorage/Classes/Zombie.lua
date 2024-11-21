@@ -22,6 +22,12 @@ function Zombie.new(model, mapa, zombiesFolder, whitelistedNames)
 
 	self.zombieAnimator = self.ZombieAnimatorClass.new(model)
 	self.sound = self.SoundClass.new()
+	
+	
+	task.defer(function()
+		self:verifyDestroy()
+	end)
+	
 
 	return self
 end
@@ -42,7 +48,7 @@ function Zombie:attackPlayer(player)
 		if humanoid then
 			-- Calcula o dano de acordo com a wave atual 
 			local zombieATK = self.model.Config.attackDamage.Value
-			local attackDamage = zombieATK + (0.6 * (self.mapa.Config.currentWave.Value))
+			local attackDamage = zombieATK + (0.7 * (self.mapa.Config.currentWave.Value))
 
 			-- Aplica o dano, animacao e som
 			self.zombieAnimator:playAnimation("attackAnim")
@@ -69,7 +75,7 @@ function Zombie:chasePlayer()
 
 	self.zombieAnimator:playAnimation("chaseAnim")
 	
-	while true do
+	while self.isAlive.Value do
 		task.wait(0.1)
 
 		-- Procura o jogador mais próximo
@@ -118,10 +124,11 @@ end
 
 -- Metodo para excluir zumbi caso morto
 function Zombie:verifyDestroy()
+	
+	if self.isAlive.Value == false then return end 
+	
 	-- Quando morto, inicia:
 	self.humanoid.Died:Connect(function() 
-		
-		print("morri")
 		-- Altera a variável isAlive para FALSO
 		self.isAlive.Value = false
 		-- Aguarda 1 segundo e exclui o proprio
@@ -129,7 +136,7 @@ function Zombie:verifyDestroy()
 		self.model:Destroy()
 
 	end)
-	
+
 end
 
 

@@ -16,8 +16,6 @@ function Weapon.new(tool) -- construtor da classe
 	
 	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
 	self.sound = self.SoundClass.new()
-	self.WeaponAnimatorClass = require(game.ReplicatedStorage.Classes.WeaponAnimator)
-	self.weaponAnimator = self.WeaponAnimatorClass.new(tool, tool)
 	
 	self:connectEvents()
 	
@@ -41,7 +39,6 @@ function Weapon:initializeWeapon()
 	mouse.Button1Down:Connect(function()
 		if self.tool:IsDescendantOf(player.Character) then
 			self:startAutoFire(player)
-			self.weaponAnimator:playAnimation("fireAnim")
 		end
 	end)
 	mouse.Button1Up:Connect(function()
@@ -49,7 +46,7 @@ function Weapon:initializeWeapon()
 	end)
 end
 
-function Weapon:autoFire(player)
+function Weapon:createBullet(player)
 	while self.holdMouse and self.tool:IsDescendantOf(player.Character) do
 		if self.canFire then
 			
@@ -83,7 +80,7 @@ end
 -- Função para ativar disparo contínuo
 function Weapon:startAutoFire(player)
 	self.holdMouse = true
-	self:autoFire(player) -- Inicia o disparo automático
+	self:createBullet(player) -- Inicia o disparo automático
 
 end
 
@@ -100,7 +97,6 @@ function Weapon:fire(player, posicaoMouse)
 	self.sound:playSound(SFX.fire, 0.5, false)
 
 	local RCparams = RaycastParams.new()
-	RCparams.FilterType = Enum.RaycastFilterType.Blacklist
 	RCparams.FilterDescendantsInstances = {self.tool.Parent}
 	local rayDirection = (posicaoMouse - self.handle.Position).Unit * self.config.range.Value
 	local RaycastResult = workspace:Raycast(self.handle.Position, rayDirection, RCparams)

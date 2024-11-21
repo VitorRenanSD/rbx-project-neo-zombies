@@ -7,6 +7,11 @@ function Player.new(player)
 	
 	self.player = player
 	
+	self.SoundClass = require(game.ReplicatedStorage.Classes.Sound)
+	self.sound = self.SoundClass.new()
+	
+	self.SFX = game.ReplicatedStorage.Sounds.SFX
+	
 	return self
 end
 
@@ -28,10 +33,10 @@ function Player:kickWhenDie()
 		local humanoid = character:WaitForChild("Humanoid")
 		
 		humanoid.Died:Connect(function()
-			
 			-- +1 no leaderboard
 			self.player.leaderstats.Deaths.Value = self.player.leaderstats.Deaths.Value + 1
 			
+			self.sound:playSound(self.SFX.winSound, 2, false)
 			self.player:Kick("You died! Looks like you're not cut out for this. Want to try again?")
 			
 		end)
